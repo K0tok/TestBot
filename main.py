@@ -13,6 +13,17 @@ keyboard_commands = telebot.types.ReplyKeyboardMarkup(True)
 keyboard_commands.row("/start", "/help", "/about")
 keyboard_commands.row("/random", "/joke", "/math")
 
+simpleAnswerKeyboard = telebot.types.InlineKeyboardMarkup()
+yesButton = telebot.types.InlineKeyboardButton("Да", callback_data="yes")
+noButton = telebot.types.InlineKeyboardButton("Нет", callback_data="no")
+simpleAnswerKeyboard.row(yesButton, noButton)
+
+gameKeyboard = telebot.types.ReplyKeyboardMarkup(True)
+gameKeyboard.row("Больше", "Меньше")
+gameKeyboard.row("Угадал!")
+
+gameCount = 0
+
 f = open("data/fun.txt", "r", encoding="UTF-8")
 jokes = f.read().split("\n")
 f.close()
@@ -80,6 +91,64 @@ def second_message(message):
     # if not err:
     #     bot.send_message(message.chat.id, f"{task[0]} {symbol} {task[1]} = {res}")
     bot.send_message(message.chat.id, f"{first_text}={eval(first_text)}")
+
+
+@bot.message_handler(commands=["game", "play"])
+def send_gamerule(message: telebot.types.Message):
+    count = 0
+    bot.send_message(
+        message.chat.id,
+        "Давай поиграем в игру! Загадай число от 1 до 100, а я его угадаю.\nИграем?;)",
+        reply_markup=simpleAnswerKeyboard,
+    )
+
+
+def game(message, low, high, num):
+    global gameCount
+    first_text = message.text
+    if gameCount == 0:
+        bot.send_message(
+            message.chat.id,
+            f"Начнём игру!\nЗагадай число от 1 до 100 и отвечай на мои вопросы.\n\nМне кажется, что ты загадал число - 50",
+            reply_markup=gameKeyboard,
+        )
+        gameCount += 1
+        bot.register_next_step_handler(message, game, low, high, num)
+    else:
+        if first_text == "Угадал!":
+            bot.send_message(
+                message.chat.id,
+                f"Ура! Твоё число {num}. Я угадал его за {gameCount} попыток.",
+            )
+            gameCount = 0
+        elif first_text == "Больше":
+            low = num + 1
+            num = (high + low) // 2
+            bot.send_message(
+                message.chat.id,
+                f"Твоё число - {num}?",
+                reply_markup=gameKeyboard,
+            )
+            gameCount += 1
+            bot.register_next_step_handler(message, game, low, high, num)
+        elif first_text == "Меньше":
+            high = num - 1
+            num = (high + low) // 2
+            bot.send_message(
+                message.chat.id,
+                f"Твоё число - {num}?",
+                reply_markup=gameKeyboard,
+            )
+            gameCount += 1
+            bot.register_next_step_handler(message, game, low, high, num)
+
+
+@bot.callback_query_handler(func=lambda callback: True)
+def callback_message(callback):
+    if callback.data == "yes":
+        game(callback.message, 0, 100, 50)
+    if callback.data == "no":
+        bot.send_message(callback.message.chat.id, "Поиграем в другой раз)")
 
 
 @bot.message_handler(func=lambda message: True)
