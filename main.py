@@ -19,7 +19,7 @@ noButton = telebot.types.InlineKeyboardButton("Нет", callback_data="no")
 simpleAnswerKeyboard.row(yesButton, noButton)
 
 gameKeyboard = telebot.types.ReplyKeyboardMarkup(True)
-gameKeyboard.row("Больше", "Меньше")
+gameKeyboard.row("Больше ⬆️", "Меньше ⬇️")
 gameKeyboard.row("Угадал!")
 
 gameCount = 0
@@ -115,13 +115,13 @@ def game(message, low, high, num):
         gameCount += 1
         bot.register_next_step_handler(message, game, low, high, num)
     else:
-        if first_text == "Угадал!":
+        if "Угадал!" in first_text:
             bot.send_message(
                 message.chat.id,
                 f"Ура! Твоё число {num}. Я угадал его за {gameCount} попыток.",
             )
             gameCount = 0
-        elif first_text == "Больше":
+        elif "Больше" in first_text:
             low = num + 1
             num = (high + low) // 2
             bot.send_message(
@@ -131,7 +131,7 @@ def game(message, low, high, num):
             )
             gameCount += 1
             bot.register_next_step_handler(message, game, low, high, num)
-        elif first_text == "Меньше":
+        elif "Меньше" in first_text:
             high = num - 1
             num = (high + low) // 2
             bot.send_message(
@@ -145,9 +145,11 @@ def game(message, low, high, num):
 
 @bot.callback_query_handler(func=lambda callback: True)
 def callback_message(callback):
+    global gameCount
     if callback.data == "yes":
         game(callback.message, 0, 100, 50)
     if callback.data == "no":
+        gameCount = 0
         bot.send_message(callback.message.chat.id, "Поиграем в другой раз)")
 
 
